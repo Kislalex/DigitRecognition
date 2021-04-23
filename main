@@ -49,7 +49,7 @@ cv2.imshow("digits", workspace)
 # 10
 
 digit_brain = Brain()
-s = "new_digit_brain"
+s = "digit_brain_dump"
 try:
     f = open(s, "rb")
     digit_brain.read_from_stream(f)
