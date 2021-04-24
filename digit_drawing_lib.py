@@ -141,7 +141,7 @@ def draw_digit_label(img, label, guess, height, left, size):
         cv2.putText(img, str(digit), (x, y), 16, 0.8, black, 1)
         dx = size // 9
         dy = 0
-        fraction = (label[digit] - 1 / 18.0) * 2.1
+        fraction = (label[digit] - 1 / 18.0) * 2.3
         if fraction < 0:
             fraction = 0.01
         dy = int(fraction * bar_size)

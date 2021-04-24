@@ -25,7 +25,7 @@ WIDTH = config["main_section"].getint("WiDTH")
 DIGIT_HEIGHT = config["main_section"].getint("DIGIT_HEIGHT")
 LABEL_SIZE = config["main_section"].getint("LABEL_SIZE")
 digit_pixels = config["main_section"].getint("digit_pixels")
-is_drawing = config["main_section"].getboolean("is_drawing")
+is_drawing = False
 
 
 def find_best_digit(label):
@@ -52,14 +52,16 @@ def draw_two_layers(workspace, history, top, left, digit_pixels):
     bigger_digit = int(digit_pixels * 1.2)
     left -= (bigger_digit - digit_pixels) // 2
     top -= (bigger_digit - digit_pixels) // 2
+    layer_0_n = len(history[0]) // 4
+    layer_1_n = len(history[1]) // len(history[0])
     dx = 3
-    size = (bigger_digit - 6 * dx) // 7
+    size = (bigger_digit - (layer_0_n - 2) * dx) // (layer_0_n - 1)
     left -= size + dx
     top -= size + dx
-    small_size = (size - 4 * dx) // 5
-    for i in range(8):
-        for j in range(5):
-            k = 5 * i + j
+    small_size = (size - (layer_1_n - 1) * dx) // layer_1_n
+    for i in range(layer_0_n):
+        for j in range(layer_1_n):
+            k = layer_1_n * i + j
             draw_digit(
                 workspace,
                 history[1][k],
@@ -69,9 +71,9 @@ def draw_two_layers(workspace, history, top, left, digit_pixels):
             )
         draw_digit(workspace, history[0][i], top, left + i * (size + dx), size)
     left = left + size + 2 * dx + bigger_digit
-    for i in range(8):
-        for j in range(5):
-            k = 40 + 5 * i + j
+    for i in range(layer_0_n):
+        for j in range(layer_1_n):
+            k = layer_0_n * layer_1_n + 5 * i + j
             draw_digit(
                 workspace,
                 history[1][k],
@@ -79,11 +81,13 @@ def draw_two_layers(workspace, history, top, left, digit_pixels):
                 left + size + dx,
                 small_size,
             )
-        draw_digit(workspace, history[0][i + 8], top + i * (size + dx), left, size)
+        draw_digit(
+            workspace, history[0][i + layer_0_n], top + i * (size + dx), left, size
+        )
     top = top + size + 2 * dx + bigger_digit
-    for i in range(8):
-        for j in range(5):
-            k = 80 + 5 * i + j
+    for i in range(layer_0_n):
+        for j in range(layer_1_n):
+            k = 2 * layer_0_n * layer_1_n + 5 * i + j
             draw_digit(
                 workspace,
                 history[1][k],
@@ -91,11 +95,13 @@ def draw_two_layers(workspace, history, top, left, digit_pixels):
                 left + size - small_size - i * (size + dx) - j * (small_size + dx),
                 small_size,
             )
-        draw_digit(workspace, history[0][i + 16], top, left - i * (size + dx), size)
+        draw_digit(
+            workspace, history[0][i + 2 * layer_0_n], top, left - i * (size + dx), size
+        )
     left = left - size - 2 * dx - bigger_digit
-    for i in range(8):
-        for j in range(5):
-            k = 120 + 5 * i + j
+    for i in range(layer_0_n):
+        for j in range(layer_1_n):
+            k = 3 * layer_0_n * layer_1_n + 5 * i + j
             draw_digit(
                 workspace,
                 history[1][k],
@@ -103,7 +109,9 @@ def draw_two_layers(workspace, history, top, left, digit_pixels):
                 left - small_size - dx,
                 small_size,
             )
-        draw_digit(workspace, history[0][i + 16], top - i * (size + dx), left, size)
+        draw_digit(
+            workspace, history[0][i + 3 * layer_0_n], top - i * (size + dx), left, size
+        )
 
 
 def draw_digit_with_history(workspace, brain, digit):
@@ -125,6 +133,7 @@ def draw_digit_with_history(workspace, brain, digit):
 
 
 def exp_gradient(output_, goal_):
+    # d/dx_i : log(e^x_k / (e^x_1 + ... + e^x_10))
     total_weight = np.sum(np.exp(output_))
     e_x = np.exp(output_[goal_])
     gradient = (e_x / (total_weight * total_weight)) * np.exp(output_)
@@ -140,7 +149,7 @@ def exp_gradient(output_, goal_):
                 gradient[i] *= -1
             elif output_[i] > 0.8:
                 gradient[i] = 0
-    return gradient
+    return (total_weight / e_x) * gradient
 
 
 def exp_energy(output_, goal_):
