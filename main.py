@@ -27,7 +27,7 @@ WIDTH = config["main_section"].getint("WiDTH")
 DIGIT_HEIGHT = config["main_section"].getint("DIGIT_HEIGHT")
 LABEL_SIZE = config["main_section"].getint("LABEL_SIZE")
 digit_pixels = config["main_section"].getint("digit_pixels")
-is_training = True
+is_training = False
 is_training_on_bad_digits = True
 
 digit_file = "train-images-idx3-ubyte.gz"
