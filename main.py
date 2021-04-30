@@ -4,6 +4,7 @@ import time
 import random
 import gzip
 import click
+from tqdm import tqdm
 
 import numpy as np
 from multiprocessing import Pool
@@ -32,6 +33,8 @@ is_training_on_bad_digits = True
 
 digit_file = "train-images-idx3-ubyte.gz"
 label_file = "train-labels-idx1-ubyte.gz"
+# digit_file = "t10k-images-idx3-ubyte.gz"
+# label_file = "t10k-labels-idx1-ubyte.gz"
 
 
 def qqq(brain, test):
@@ -68,8 +71,6 @@ digit = np.zeros((digit_pixels, digit_pixels))
 if is_training:
     digit_stream = gzip.open(digit_file, "r")
     label_stream = gzip.open(label_file, "r")
-    # digit_file = gzip.open("t10k-images-idx3-ubyte.gz", "r")
-    # label_file = gzip.open("t10k-labels-idx1-ubyte.gz", "r")
     tests_ = read_digits_and_labels(digit_stream, label_stream)
     digit_stream.close()
     label_stream.close()
@@ -78,8 +79,9 @@ if is_training:
     dn = 300
     step = 3
     scales = [
-        1.0,
+        0.2,
     ]
+    minimal_bad = 3995
 else:
     draw_with_brain = partial(draw, digit_brain, digit, workspace)
     cv2.setMouseCallback("digits", draw_with_brain)
@@ -91,30 +93,38 @@ while True:
             print("Extracting test, that went wrong")
             best_digit_ = partial(qqq, digit_brain)
             guesses = []
+            t = time.time()
             with Pool(16) as p:
-                work = p.map_async(best_digit_, tests_)
+                work = p.map_async(best_digit_, tqdm(tests_))
                 p.close()
                 p.join()
                 guesses = work.get()
             bad_tests = []
+            print("Time spent : {}".format(time.time() - t))
             for i in range(len(tests_)):
                 if guesses[i][0] != tests_[i][1] or guesses[i][1] < 0.6:
                     bad_tests.append(tests_[i])
             print("Bad tests : {}".format(len(bad_tests)))
-            testing = bad_tests
-            scales = [
-                0.1,
-            ]
+            # testing = bad_tests
+            if len(bad_tests) < minimal_bad:
+                minimal_bad = len(bad_tests)
+                print("Saved for {}".format(minimal_bad))
+                f = open(s, "wb")
+                digit_brain.write_to_stream(f)
+                f.close()
+            # scales = [
+            #    0.1,
+            # ]
         random.shuffle(testing)
 
         digit_brain = learn_digit_brain(
             digit_brain, testing, workspace, n, dn, step, scales
         )
-        scales = [scales[0] / 4]
-        print("not saved")
-        f = open(s, "wb")
-        digit_brain.write_to_stream(f)
-        f.close()
+        scales = [scales[0], scales[0] / 4]
+        # print("not saved")
+        # f = open(s, "wb")
+        # digit_brain.write_to_stream(f)
+        # f.close()
     else:
         k = cv2.waitKey(1)
         if k == ord("q"):

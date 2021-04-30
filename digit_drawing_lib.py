@@ -238,6 +238,12 @@ def clear_workspace(digit_top, digit_left, digit_size):
         )
     cv2.putText(img, "mouse_draw:", (10, 15), 16, 0.5, black, 1)
     cv2.putText(
-        img, "to clear the image press 'c'", (10, HEIGHT - 10), 16, 0.5, black, 1
+        img,
+        "to clear the image press 'c', to exit press 'q'",
+        (10, HEIGHT - 10),
+        16,
+        0.5,
+        black,
+        1,
     )
     return img
