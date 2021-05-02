@@ -199,7 +199,6 @@ def read_digits_and_labels(digits, labels):
     int.from_bytes(labels.read(8), byteorder="big")
     data_digits = []
     data_labels = []
-    # size = 1000
     for i in range(size):
         new_digit = np.array(
             [
@@ -222,13 +221,6 @@ def draw(brain, digit, workspace, event, x, y, flags, param):
         cv2.waitKey(1)
 
     elif event == cv2.EVENT_MOUSEMOVE:
-        draw_digit(
-            workspace,
-            digit,
-            (HEIGHT - DIGIT_HEIGHT) // 2,
-            (WIDTH - LABEL_SIZE - DIGIT_HEIGHT) // 2,
-            DIGIT_HEIGHT,
-        )
         if is_drawing:
             x -= (WIDTH - LABEL_SIZE - DIGIT_HEIGHT) // 2
             y -= (HEIGHT - DIGIT_HEIGHT) // 2

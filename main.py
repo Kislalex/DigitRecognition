@@ -29,7 +29,8 @@ DIGIT_HEIGHT = config["main_section"].getint("DIGIT_HEIGHT")
 LABEL_SIZE = config["main_section"].getint("LABEL_SIZE")
 digit_pixels = config["main_section"].getint("digit_pixels")
 is_training = False
-is_training_on_bad_digits = True
+is_pre_testing = False
+is_training_on_bad_digits = False
 
 digit_file = "train-images-idx3-ubyte.gz"
 label_file = "train-labels-idx1-ubyte.gz"
@@ -77,34 +78,59 @@ if is_training:
     print("Begin learning : {}".format(len(tests_)))
     n = 0
     dn = 300
-    step = 3
+    step = 2
     scales = [
+        0.8,
         0.2,
+        0.08,
     ]
-    minimal_bad = 3995
+    minimal_bad = 2810
 else:
     draw_with_brain = partial(draw, digit_brain, digit, workspace)
     cv2.setMouseCallback("digits", draw_with_brain)
 
+if is_pre_testing:
+    print("Extracting test, that went wrong")
+    best_digit_ = partial(qqq, digit_brain)
+    guesses = []
+    with Pool(16) as p:
+        work = p.map_async(best_digit_, tqdm(tests_))
+        p.close()
+        p.join()
+        guesses = work.get()
+    bad_tests = []
+    for i in range(len(tests_)):
+        if guesses[i][0] != tests_[i][1] or guesses[i][1] < 0.6:
+            bad_tests.append(tests_[i])
+    print("Test accuracy : {0:.2f}%".format(100.0 - len(bad_tests) * 100.0 / len(tests_)))
+    minimal_bad = len(bad_tests)
+
 while True:
     if is_training:
         testing = tests_
+        random.shuffle(testing)
+
+        digit_brain = learn_digit_brain(
+            digit_brain, testing, workspace, n, dn, step, scales
+        )
         if is_training_on_bad_digits:
             print("Extracting test, that went wrong")
             best_digit_ = partial(qqq, digit_brain)
             guesses = []
-            t = time.time()
             with Pool(16) as p:
                 work = p.map_async(best_digit_, tqdm(tests_))
                 p.close()
                 p.join()
                 guesses = work.get()
             bad_tests = []
-            print("Time spent : {}".format(time.time() - t))
             for i in range(len(tests_)):
                 if guesses[i][0] != tests_[i][1] or guesses[i][1] < 0.6:
                     bad_tests.append(tests_[i])
-            print("Bad tests : {}".format(len(bad_tests)))
+            print(
+                "Test accuracy : {0:.2f}%".format(
+                    100.0 - len(bad_tests) * 100.0 / len(tests_)
+                )
+            )
             # testing = bad_tests
             if len(bad_tests) < minimal_bad:
                 minimal_bad = len(bad_tests)
@@ -112,19 +138,6 @@ while True:
                 f = open(s, "wb")
                 digit_brain.write_to_stream(f)
                 f.close()
-            # scales = [
-            #    0.1,
-            # ]
-        random.shuffle(testing)
-
-        digit_brain = learn_digit_brain(
-            digit_brain, testing, workspace, n, dn, step, scales
-        )
-        scales = [scales[0], scales[0] / 4]
-        # print("not saved")
-        # f = open(s, "wb")
-        # digit_brain.write_to_stream(f)
-        # f.close()
     else:
         k = cv2.waitKey(1)
         if k == ord("q"):
